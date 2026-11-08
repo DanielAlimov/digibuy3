@@ -1,0 +1,1715 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <title>Перекуп Активов</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIwIiBmaWxsPSIjMDA3QUZGIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiNmZmYiPkE8L3RleHQ+PC9zdmc+">
+    <style>
+        :root {
+            --safe-top: env(safe-area-inset-top, 44px);
+            --safe-bottom: env(safe-area-inset-bottom, 34px);
+            --ios-blue: #007aff;
+            --ios-gray: #8e8e93;
+            --ios-bg: #f2f2f7;
+            --bg-dark: #121212;
+            --text-dark: #fff;
+            --text-light: #000;
+            --bank-orange: #ff7b00;
+            --bank-red: #f03e3e;
+            --num-yellow: #ffcc00;
+            --num-dark: #1c1c1e;
+            --chat-bg: #f2f2f7;
+            --bubble-blue: #007aff;
+            --bubble-gray: #e5e5ea;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #000;
+            color: var(--text-light);
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Общий контейнер для экранов */
+        #app {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            background: #a5b1c2; /* Задний фон рабочего стола */
+            transition: background 0.3s;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--ios-bg);
+            display: flex;
+            flex-direction: column;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 10;
+            will-change: transform;
+        }
+
+        .screen.active {
+            transform: translateX(0);
+        }
+
+        .screen.home-screen {
+            background: linear-gradient(135deg, #9face6 0%, #74ebd5 100%);
+            transform: translateX(0);
+            z-index: 1;
+        }
+
+        /* Статус-бар */
+        .status-bar {
+            height: var(--safe-top);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 20px 8px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #000;
+            position: relative;
+            z-index: 100;
+        }
+        
+        .status-bar.dark {
+            color: #fff;
+        }
+
+        .status-right {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        /* Шапка приложения */
+        .header {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            background: var(--ios-blue);
+            color: white;
+            font-weight: 600;
+            font-size: 17px;
+        }
+
+        .header.dark { background: var(--num-dark); }
+        .header.orange { background: var(--bank-orange); }
+
+        .header .back-btn {
+            font-size: 24px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        /* Рабочий стол */
+        .desktop {
+            padding: 20px 16px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px 16px;
+            align-content: start;
+            height: 100%;
+            padding-top: 60px;
+        }
+
+        .app-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .app-icon-img {
+            width: 60px;
+            height: 60px;
+            border-radius: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            background: #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .app-icon-name {
+            font-size: 11px;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .dock {
+            position: absolute;
+            bottom: calc(20px + var(--safe-bottom));
+            left: 16px;
+            right: 16px;
+            height: 80px;
+            background: rgba(255,255,255,0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 24px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .dock .app-icon-img {
+            background: #fff;
+            width: 56px;
+            height: 56px;
+        }
+
+        .badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: #ff3b30;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 11px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid #fff;
+        }
+
+        /* Уведомления */
+        #notification-container {
+            position: absolute;
+            top: var(--safe-top);
+            left: 10px;
+            right: 10px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .push-notification {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 12px 16px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transform: translateY(-120%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            pointer-events: auto;
+            color: #000;
+        }
+
+        .push-notification.show {
+            transform: translateY(0);
+        }
+
+        .push-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 4px;
+        }
+        
+        .push-title { font-weight: 600; }
+        .push-body { font-size: 14px; }
+
+        /* Приложение Объявления (Avito clone) */
+        .avito-header {
+            background: #00a1ff;
+            padding: 10px 16px;
+            color: white;
+        }
+
+        .search-bar {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            color: #999;
+            font-size: 15px;
+            margin-top: 10px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .card-img {
+            height: 200px;
+            background: linear-gradient(45deg, #ccc, #eee);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            font-weight: bold;
+            color: rgba(0,0,0,0.2);
+        }
+
+        .badge-urgent {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #ff3b30;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .card-content {
+            padding: 12px;
+        }
+
+        .price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00a1ff;
+        }
+
+        .old-price {
+            font-size: 14px;
+            color: #999;
+            text-decoration: line-through;
+            margin-left: 8px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        .tags {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: #f2f2f7;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Чат */
+        .chat-container {
+            flex: 1;
+            background: var(--chat-bg);
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.4;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.in {
+            background: var(--bubble-gray);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.out {
+            background: var(--bubble-blue);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .msg-time {
+            font-size: 10px;
+            color: rgba(0,0,0,0.3);
+            text-align: right;
+            margin-top: 4px;
+        }
+        
+        .message.out .msg-time { color: rgba(255,255,255,0.7); }
+
+        .chat-input-bar {
+            padding: 10px 16px;
+            padding-bottom: calc(10px + var(--safe-bottom));
+            background: #fff;
+            display: flex;
+            gap: 8px;
+            flex-direction: column;
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 15px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-red { background: #ffe5e5; color: #ff3b30; }
+        .btn-blue { background: #e5f0ff; color: #007aff; }
+        .btn-green { background: #34c759; color: #fff; }
+
+        /* Нижняя шторка торговли */
+        .bottom-sheet {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            padding-bottom: calc(20px + var(--safe-bottom));
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+            transform: translateY(100%);
+            transition: transform 0.3s;
+            z-index: 50;
+        }
+
+        .bottom-sheet.show { transform: translateY(0); }
+
+        .price-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .price-control button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: #f2f2f7;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .price-control input {
+            flex: 1;
+            height: 50px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            background: #f9f9f9;
+        }
+
+        /* Приложение Банк */
+        .bank-login {
+            flex: 1;
+            background: var(--bank-orange);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .bank-logo { font-size: 40px; font-weight: bold; margin-bottom: 20px; }
+        .dots { display: flex; gap: 15px; margin-bottom: 40px; }
+        .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; }
+        .dot.filled { background: white; }
+
+        .pin-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            width: 280px;
+        }
+
+        .pin-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            color: white;
+            border: none;
+        }
+        .pin-btn:active { background: rgba(255,255,255,0.4); }
+
+        .bank-main { background: #f2f2f7; flex: 1; padding: 16px; overflow-y: auto; }
+        
+        .bank-card {
+            background: linear-gradient(135deg, #ff4b4b, #ff7676);
+            border-radius: 16px;
+            padding: 20px;
+            color: white;
+            box-shadow: 0 10px 20px rgba(255,75,75,0.3);
+            margin-bottom: 20px;
+        }
+        .bank-card .balance { font-size: 32px; font-weight: bold; margin: 15px 0; }
+        
+        .bank-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .bank-tile {
+            background: #fff;
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* Хранилище / Гараж */
+        .storage-bg {
+            flex: 1;
+            background: repeating-linear-gradient(90deg, #333, #333 40px, #2a2a2a 40px, #2a2a2a 80px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            perspective: 1000px;
+        }
+        
+        .hanging-plate {
+            background: #fff;
+            border: 4px solid #000;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 40px;
+            font-weight: bold;
+            font-family: monospace;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .hanging-plate::before, .hanging-plate::after {
+            content: '';
+            position: absolute;
+            top: -60px;
+            width: 2px;
+            height: 60px;
+            background: #555;
+        }
+        .hanging-plate::before { left: 30%; transform: rotate(15deg); transform-origin: bottom; }
+        .hanging-plate::after { right: 30%; transform: rotate(-15deg); transform-origin: bottom; }
+        
+        .plate-screw {
+            width: 8px; height: 8px; border-radius: 50%; background: #999;
+            position: absolute; top: 50%; transform: translateY(-50%);
+        }
+        .plate-screw.left { left: 5px; }
+        .plate-screw.right { right: 5px; }
+
+        /* Приложение Номера */
+        .numbers-app { background: var(--num-dark); color: #fff; flex: 1; display: flex; flex-direction: column; }
+        .tabs { display: flex; border-bottom: 1px solid #333; }
+        .tab { flex: 1; text-align: center; padding: 15px 0; font-size: 14px; color: #888; font-weight: 500; position: relative; }
+        .tab.active { color: var(--num-yellow); }
+        .tab.active::after { content: ''; position: absolute; bottom: -1px; left: 20%; right: 20%; height: 3px; background: var(--num-yellow); border-radius: 3px 3px 0 0; }
+        
+        .spin-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .spin-box { width: 100%; height: 120px; background: #2c2c2e; border-radius: 16px; display: flex; justify-content: center; align-items: center; margin-bottom: 20px; position: relative; overflow: hidden; }
+        
+        .spin-btn {
+            width: 100%;
+            background: var(--num-yellow);
+            color: #000;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            margin-bottom: 12px;
+        }
+        
+        .auto-btn { width: 100%; background: transparent; color: #fff; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 500; border: 1px solid #444; }
+
+        /* Профиль / Документы */
+        .doc-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .doc-title { font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .doc-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+        .doc-label { color: #888; }
+        
+        /* Навигация */
+        .bottom-nav { display: flex; background: #fff; border-top: 1px solid #eee; padding-bottom: var(--safe-bottom); }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 0; font-size: 10px; color: #999; }
+        .nav-item.active { color: var(--ios-blue); }
+        .nav-icon { font-size: 22px; margin-bottom: 4px; }
+        
+        .fab {
+            position: absolute;
+            bottom: calc(20px + var(--safe-bottom));
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--ios-blue);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            box-shadow: 0 4px 15px rgba(0,122,255,0.4);
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <!-- Уведомления -->
+        <div id="notification-container"></div>
+
+        <!-- 1. Рабочий стол -->
+        <div class="screen home-screen active" id="screen-home">
+            <div class="status-bar">
+                <span id="game-time">12:00</span>
+                <div class="status-right">
+                    <span>📶</span> <span>🔋</span> <span id="battery">100%</span>
+                </div>
+            </div>
+            
+            <div class="desktop">
+                <!-- Иконки приложений -->
+                <div class="app-icon" onclick="openApp('app-avito')">
+                    <div class="app-icon-img" style="background:#00a1ff; color:#fff;">📋</div>
+                    <div class="app-icon-name">Объявления</div>
+                </div>
+                <div class="app-icon" onclick="openApp('app-bank')">
+                    <div class="app-icon-img" style="background:var(--bank-orange); color:#fff; font-weight:bold;">П</div>
+                    <div class="app-icon-name">П-Банк</div>
+                </div>
+                <div class="app-icon" onclick="openApp('app-numbers')">
+                    <div class="app-icon-img" style="background:var(--num-dark); color:var(--num-yellow);">🎫</div>
+                    <div class="app-icon-name">Активы</div>
+                </div>
+                <div class="app-icon" onclick="openApp('app-storage')">
+                    <div class="app-icon-img" style="background:#fff; color:#333;">🏠</div>
+                    <div class="app-icon-name">Хранилище</div>
+                </div>
+                <div class="app-icon" onclick="openApp('app-docs')">
+                    <div class="app-icon-img" style="background:#fff; color:#555;">📄</div>
+                    <div class="app-icon-name">Документы</div>
+                </div>
+                <div class="app-icon" onclick="openApp('app-sleep')">
+                    <div class="app-icon-img" style="background:#000; color:#fff;">💤</div>
+                    <div class="app-icon-name">Сон</div>
+                </div>
+            </div>
+
+            <div class="dock">
+                <div class="app-icon"><div class="app-icon-img" style="background:#34c759; color:#fff;">📞</div></div>
+                <div class="app-icon" onclick="openApp('app-messages')" style="position:relative;">
+                    <div class="app-icon-img" style="background:#34c759; color:#fff;">💬</div>
+                    <div class="badge" id="msg-badge" style="display:none;">1</div>
+                </div>
+                <div class="app-icon"><div class="app-icon-img" style="background:#8e8e93; color:#fff;">📷</div></div>
+                <div class="app-icon"><div class="app-icon-img" style="background:#007aff; color:#fff;">🧭</div></div>
+            </div>
+        </div>
+
+        <!-- 2. Объявления -->
+        <div class="screen" id="app-avito">
+            <div class="status-bar dark">
+                <span id="game-time-avito">12:00</span>
+                <div class="status-right"><span>📶</span> <span>🔋</span></div>
+            </div>
+            <div class="avito-header">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-size:22px; font-weight:bold; font-style:italic;">Avto<span style="color:#ffe600">Buy</span></div>
+                    <div style="background:rgba(255,255,255,0.2); padding:4px 10px; border-radius:12px; font-size:12px;">Екатеринбург</div>
+                </div>
+                <div class="search-bar">🔍 Поиск по объявлениям</div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:16px; background:#f2f2f7;" id="avito-list">
+                <!-- Карточки товаров будут здесь -->
+            </div>
+            <div class="bottom-nav">
+                <div class="nav-item active"><div class="nav-icon">📋</div>Объявления</div>
+                <div class="nav-item"><div class="nav-icon">⭐</div>Избранное</div>
+                <div class="nav-item" onclick="openApp('app-messages')"><div class="nav-icon">💬</div>Сообщения</div>
+                <div class="nav-item"><div class="nav-icon">👤</div>Профиль</div>
+            </div>
+        </div>
+
+        <!-- 3. Чат -->
+        <div class="screen" id="app-chat">
+            <div class="status-bar">
+                <span id="game-time-chat">12:00</span>
+                <div class="status-right"><span>📶</span> <span>🔋</span></div>
+            </div>
+            <div class="header">
+                <div class="back-btn" onclick="closeApp('app-chat')">←</div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="width:32px; height:32px; border-radius:50%; background:#ffcc00; display:flex; justify-content:center; align-items:center;">👨</div>
+                    <div>
+                        <div style="font-size:15px;" id="chat-buyer-name">Виктор</div>
+                        <div style="font-size:11px; opacity:0.8;">в сети</div>
+                    </div>
+                </div>
+                <div style="width:44px;"></div>
+            </div>
+            
+            <div style="background:#fff; padding:8px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #eee;">
+                <div style="width:40px; height:40px; background:#eee; border-radius:6px; display:flex; justify-content:center; align-items:center;">🏷️</div>
+                <div>
+                    <div style="font-size:14px; font-weight:600;" id="chat-item-name">Актив</div>
+                    <div style="font-size:14px; color:#999;" id="chat-item-price">0 ₽</div>
+                </div>
+            </div>
+
+            <div class="chat-container" id="chat-messages">
+                <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; font-size:12px; text-align:center; margin-bottom:10px;">
+                    Никогда не отправляйте предоплату, вы можете потерять свои деньги!
+                </div>
+            </div>
+
+            <div class="chat-input-bar" id="chat-actions">
+                <div class="chat-actions">
+                    <button class="btn btn-red" onclick="rejectOffer()">Отказать</button>
+                    <button class="btn btn-blue" onclick="showTradeSheet()">Торговаться</button>
+                </div>
+                <button class="btn btn-green" onclick="acceptOffer()">Согласиться</button>
+            </div>
+        </div>
+
+        <!-- 4. Шторка торговли -->
+        <div class="bottom-sheet" id="trade-sheet">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div style="font-size:18px; font-weight:bold;">🏷️ Торговаться (Цена)</div>
+                <div style="color:#999; cursor:pointer;" onclick="hideTradeSheet()">✕</div>
+            </div>
+            <div style="font-size:14px; color:#666; margin-bottom:20px;">Текущее предложение: <span id="current-offer">0</span> ₽</div>
+            <div style="font-size:14px; font-weight:600; margin-bottom:10px;">Ваша цена (₽)</div>
+            <div class="price-control">
+                <button onclick="adjustPrice(-10000)">−</button>
+                <input type="number" id="my-price-input" value="0">
+                <button onclick="adjustPrice(10000)">+</button>
+            </div>
+            <button class="btn btn-blue" style="background:var(--ios-blue); color:#fff; padding:16px;" onclick="submitCounterOffer()">Предложить</button>
+        </div>
+
+        <!-- 5 & 6. Банк -->
+        <div class="screen" id="app-bank">
+            <div class="status-bar dark">
+                <span id="game-time-bank">12:00</span>
+                <div class="status-right"><span>📶</span> <span>🔋</span></div>
+            </div>
+            
+            <!-- Экран входа -->
+            <div class="bank-login" id="bank-login-screen">
+                <div class="bank-logo">П-Банк</div>
+                <div style="margin-bottom:20px;">Введите код</div>
+                <div class="dots">
+                    <div class="dot" id="dot-1"></div>
+                    <div class="dot" id="dot-2"></div>
+                    <div class="dot" id="dot-3"></div>
+                    <div class="dot" id="dot-4"></div>
+                </div>
+                <div class="pin-pad">
+                    <button class="pin-btn" onclick="enterPin('1')">1</button>
+                    <button class="pin-btn" onclick="enterPin('2')">2</button>
+                    <button class="pin-btn" onclick="enterPin('3')">3</button>
+                    <button class="pin-btn" onclick="enterPin('4')">4</button>
+                    <button class="pin-btn" onclick="enterPin('5')">5</button>
+                    <button class="pin-btn" onclick="enterPin('6')">6</button>
+                    <button class="pin-btn" onclick="enterPin('7')">7</button>
+                    <button class="pin-btn" onclick="enterPin('8')">8</button>
+                    <button class="pin-btn" onclick="enterPin('9')">9</button>
+                    <button class="pin-btn" style="visibility:hidden;"></button>
+                    <button class="pin-btn" onclick="enterPin('0')">0</button>
+                    <button class="pin-btn" onclick="enterPin('del')">⌫</button>
+                </div>
+                <div style="margin-top:30px; opacity:0.8;" onclick="openApp('app-bank-main')">Забыли код?</div>
+            </div>
+
+            <!-- Главный экран банка -->
+            <div class="screen" id="app-bank-main" style="transform:translateX(100%);">
+                <div class="status-bar">
+                    <span id="game-time-bank-main">12:00</span>
+                    <div class="status-right"><span>📶</span> <span>🔋</span></div>
+                </div>
+                <div class="header orange" style="justify-content:flex-start;">
+                    <div class="back-btn" onclick="closeApp('app-bank-main')">←</div>
+                    <div>П-Банк</div>
+                </div>
+                <div class="bank-main">
+                    <div class="bank-card">
+                        <div style="font-size:14px; opacity:0.8;">Баланс</div>
+                        <div class="balance" id="bank-balance">597 886,00 ₽</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+                            <div>•••• 5232</div>
+                            <div style="font-weight:bold;">DANIELALIMOV</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bank-tiles">
+                        <div class="bank-tile">
+                            <div style="font-size:24px;">🏛️</div>
+                            <div>Кредиты</div>
+                            <div style="color:#999; font-weight:normal; font-size:12px;">Нет долгов</div>
+                        </div>
+                        <div class="bank-tile">
+                            <div style="font-size:24px;">🔒</div>
+                            <div>Задатки</div>
+                            <div style="color:#999; font-weight:normal; font-size:12px;">Нет броней</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bank-tile" style="margin-bottom:20px;">
+                        <div style="font-size:24px; color:#ff3b30;">❤️</div>
+                        <div>Перевести родным</div>
+                        <div style="color:#999; font-weight:normal; font-size:12px;">Маме, бабушке, другу — просто так</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Хранилище -->
+        <div class="screen" id="app-storage">
+            <div class="status-bar dark">
+                <span id="game-time-storage">12:00</span>
+                <div class="status-right"><span>📶</span> <span>🔋</span></div>
+            </div>
+            <div class="header" style="background:#007aff; justify-content:space-between;">
+                <div class="back-btn" onclick="closeApp('app-storage')">←</div>
+                <div>Хранилище</div>
+                <div style="width:44px; font-size:20px;">📅</div>
+            </div>
+            
+            <div style="background:#fff; padding:16px; margin:16px; border-radius:16px;">
+                <div style="display:flex; justify-content:space-between; color:#666; font-size:12px;">
+                    <div>Стоимость по оценке</div>
+                    <div>Активов <b id="storage-count">1</b></div>
+                </div>
+                <div style="font-size:24px; font-weight:bold; margin:5px 0;" id="storage-total-value">2 714 900 ₽</div>
+                <div style="color:#34c759; font-weight:600; font-size:14px;" id="storage-profit">+429 900 ₽</div>
+            </div>
+
+            <div style="display:flex; gap:10px; padding:0 16px; margin-bottom:16px; overflow-x:auto;">
+                <div style="padding:8px 16px; background:#007aff; color:#fff; border-radius:20px; font-size:14px; white-space:nowrap;">Активы</div>
+                <div style="padding:8px 16px; background:#fff; color:#333; border-radius:20px; font-size:14px; white-space:nowrap;">Парковка</div>
+                <div style="padding:8px 16px; background:#fff; color:#333; border-radius:20px; font-size:14px; white-space:nowrap;">Номера</div>
+                <div style="padding:8px 16px; background:#fff; color:#333; border-radius:20px; font-size:14px; white-space:nowrap;">Мастерская</div>
+            </div>
+
+            <div class="storage-bg">
+                <div class="hanging-plate" id="storage-current-plate">
+                    <div class="plate-screw left"></div>
+                    <div class="plate-screw right"></div>
+                    <span id="storage-plate-text">0212 АО</span>
+                    <span style="font-size:16px; vertical-align:top; margin-left:5px;">66</span>
+                </div>
+            </div>
+
+            <div style="padding:16px; background:#1c1c1e; color:#fff; border-radius:20px 20px 0 0; margin-top:-20px; position:relative; z-index:5;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="background:#007aff; color:#fff; padding:4px 10px; border-radius:12px; font-size:12px;" id="storage-rarity">Красивый</div>
+                    <div style="font-size:16px; font-weight:bold;" id="storage-value">≈ 16 800 ₽</div>
+                </div>
+                <div style="margin-top:10px; font-size:14px;" id="storage-name">На машине AUDY Q3</div>
+                <div style="color:#888; font-size:12px; margin-top:4px;" id="storage-tags">Зеркальные цифры · Зеркальные буквы</div>
+                <button class="btn" style="width:100%; background:transparent; border:1px solid #333; color:#fff; margin-top:16px;" onclick="openApp('app-numbers')">Открыть «Активы»</button>
+            </div>
+        </div>
+
+        <!-- 8. Документы -->
+        <div class="screen" id="app-docs">
+            <div class="status-bar">
+                <span id="game-time-docs">12:00</span>
+                <div class="status-right"><span>📶</span> <span>🔋</span></div>
+            </div>
+            <div class="header" style="background:#fff; color:#333; border-bottom:1px solid #eee; justify-content:space-between;">
+                <div class="back-btn" onclick="closeApp('app-docs')" style="color:#333;">←</div>
+                <div>Госбай</div>
+                <div style="width:44px;"></div>
+            </div>
+            <div style="flex:1; background:#f2f2f7; padding:16px; overflow-y:auto;">
+                <div class="doc-card" style="background:linear-gradient(180deg, #ffe5e5, #fff);">
+                    <div class="doc-title" style="text-align:center; color:#d32f2f; font-weight:bold;">РОССИЙСКАЯ ФЕДЕРАЦИЯ · ПАСПОРТ</div>
+                    <div style="display:flex; gap:16px; margin-top:16px;">
+                        <div style="width:80px; height:100px; background:#fff; border:1px solid #ddd; border-radius:4px; display:flex; justify-content:center; align-items:center; font-size:40px;">👨</div>
+                        <div style="flex:1;">
+                            <div class="doc-row"><span class="doc-label">Фамилия</span><span>-</span></div>
+                            <div class="doc-row"><span class="doc-label">Имя</span><span>-</span></div>
+                            <div class="doc-row"><span class="doc-label">Пол</span><span>МУЖ.</span></div>
+                            <div class="doc-row"><span class="doc-label">Дата рождения</span><span>20.10.2005</span></div>
+                            <div class="doc-row"><span class="doc-label">Место рождения</span><span>ГОР. ЕКАТЕРИНБУРГ</span></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="doc-card" style="background:linear-gradient(180deg, #e5f0ff, #fff);">
+                    <div class="doc-title" style="color:#1976d2; font-weight:bold;">ВОДИТЕЛЬСКОЕ УДОСТОВЕРЕНИЕ</div>
+                    <div style="display:flex; gap:16px; margin-top:16px;">
+                        <div style="width:60px; height:80px; background:#fff; border:1px solid #ddd; border-radius:4px; display:flex; justify-content:center; align-items:center; font-size:30px;">👨</div>
+                        <div style="flex:1;">
+                            <div class="doc-row"><span class="doc-label">3. Дата рождения</span><span>20.10.2005</span></div>
+                            <div class="doc-row"><span class="doc-label">4b. Действительно до</span><span>30.04.2034</span></div>
+                            <div class="doc-row"><span class="doc-label">9. Категории</span><span>B, B1, M</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9 & 10. Активы (Номера) -->
+        <div class="screen" id="app-numbers">
+            <div class="status-bar dark">
+                <span id="game-time-numbers">12:00</span>
+                <div class="status-right"><span>📶</span> <span>🔋</span></div>
+            </div>
+            <div class="header dark" style="background:transparent;">
+                <div class="back-btn" onclick="closeApp('app-numbers')">←</div>
+                <div>Активы</div>
+                <div style="width:44px;"></div>
+            </div>
+            <div class="numbers-app">
+                <div style="padding:0 16px 10px; display:flex; justify-content:space-between; font-size:14px; color:#888;">
+                    <div>💰 <span id="numbers-balance">597 886</span> ₽</div>
+                    <div>На хранении <span id="numbers-storage">0/20</span></div>
+                </div>
+                
+                <div class="tabs">
+                    <div class="tab" onclick="switchNumbersTab('showcase')">Витрина</div>
+                    <div class="tab active" onclick="switchNumbersTab('lottery')">ГИБДД</div>
+                    <div class="tab" onclick="switchNumbersTab('my')">Мои номера</div>
+                    <div class="tab" onclick="switchNumbersTab('check')">Проверка</div>
+                </div>
+
+                <!-- Вкладка Лотерея -->
+                <div id="tab-lottery" style="flex:1; display:flex; flex-direction:column;">
+                    <div style="padding:16px; background:#2c2c2e; margin:16px; border-radius:16px; font-size:12px; color:#aaa; line-height:1.5;">
+                        <div style="color:var(--num-yellow); font-weight:bold; margin-bottom:5px;">🛡️ ГИБДД города Екатеринбург</div>
+                        За попытку выдают случайный номер этого региона. Понравился — заберите на хранение, нет — крутите ещё. Красивые выпадают редко, «легендарные» — почти никогда.
+                    </div>
+                    <div class="spin-area">
+                        <div class="spin-box" id="spin-box">
+                            <div style="color:#555;" id="spin-text">Нажмите «Крутить»</div>
+                        </div>
+                        <button class="spin-btn" onclick="spinLottery()" id="spin-btn">Крутить за 12 000 ₽</button>
+                        <button class="auto-btn">Автокрутка</button>
+                    </div>
+                </div>
+
+                <!-- Вкладка Витрина -->
+                <div id="tab-showcase" style="flex:1; display:none; overflow-y:auto; padding:16px;">
+                    <div style="color:#aaa; margin-bottom:10px; font-size:12px;">Обновляется раз в день</div>
+                    <!-- Список будет генерироваться -->
+                </div>
+
+                <!-- Вкладка Мои -->
+                <div id="tab-my" style="flex:1; display:none; overflow-y:auto; padding:16px;">
+                    <!-- Список моих активов -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Сон -->
+        <div class="screen" id="app-sleep" style="background:#000; color:#fff; justify-content:center; align-items:center;">
+            <div style="font-size:60px; margin-bottom:20px;">💤</div>
+            <div style="font-size:20px; font-weight:bold; margin-bottom:10px;">Сон</div>
+            <div style="color:#888; margin-bottom:30px; text-align:center; padding:0 40px;">Пропустить 8 часов игрового времени</div>
+            <button class="btn btn-blue" style="background:var(--ios-blue); color:#fff; padding:16px 40px; width:auto;" onclick="skipTime(8)">Спать</button>
+            <button class="btn" style="background:transparent; color:#fff; margin-top:20px;" onclick="closeApp('app-sleep')">Отмена</button>
+        </div>
+
+        <!-- Приложение Сообщения (заглушка для дока) -->
+        <div class="screen" id="app-messages">
+            <div class="status-bar">
+                <span id="game-time-msg">12:00</span>
+                <div class="status-right"><span>📶</span> <span>🔋</span></div>
+            </div>
+            <div class="header" style="background:#fff; color:#333; justify-content:space-between; border-bottom:1px solid #eee;">
+                <div class="back-btn" onclick="closeApp('app-messages')" style="color:#333;">←</div>
+                <div>Сообщения</div>
+                <div style="width:44px;"></div>
+            </div>
+            <div style="flex:1; background:#fff; padding:16px;" id="messages-list">
+                <div style="color:#999; text-align:center; margin-top:50px;">Нет новых сообщений</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- ДАННЫЕ И СОСТОЯНИЕ ---
+        const state = {
+            money: 600000,
+            gameTime: 12 * 60, // 12:00 в минутах
+            inventory: [], // Купленные активы
+            listings: [], // Выставленные на продажу
+            messages: [], // Активные чаты
+            activeChatId: null,
+            bankLoggedIn: false,
+            pinCode: '',
+            battery: 100,
+            currentTab: 'lottery'
+        };
+
+        // Загрузка
+        function loadState() {
+            const saved = localStorage.getItem('flipperGameState');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                Object.assign(state, parsed);
+            }
+            updateUI();
+        }
+
+        // Сохранение
+        function saveState() {
+            localStorage.setItem('flipperGameState', JSON.stringify(state));
+        }
+
+        // --- ГЕНЕРАЦИЯ АКТИВОВ ---
+        const rarities = [
+            { name: 'Обычный', color: '#8e8e93', mult: 1 },
+            { name: 'Красивый', color: '#34c759', mult: 2.5 },
+            { name: 'Редкий', color: '#007aff', mult: 5 },
+            { name: 'Эпик', color: '#af52de', mult: 12 },
+            { name: 'Легенда', color: '#ffcc00', mult: 30 }
+        ];
+
+        function generateAsset(type) {
+            // Определение редкости (шансы)
+            let r = Math.random();
+            let rarityIndex = 0;
+            if (r > 0.95) rarityIndex = 4;
+            else if (r > 0.85) rarityIndex = 3;
+            else if (r > 0.6) rarityIndex = 2;
+            else if (r > 0.3) rarityIndex = 1;
+            
+            const rarity = rarities[rarityIndex];
+            let name = '';
+            let tags = [];
+
+            if (type === 'plate') {
+                const letters = 'АВЕКМНОРСТУХ';
+                const l1 = letters[Math.floor(Math.random() * letters.length)];
+                const l2 = letters[Math.floor(Math.random() * letters.length)];
+                const l3 = letters[Math.floor(Math.random() * letters.length)];
+                let num = Math.floor(Math.random() * 999).toString().padStart(3, '0');
+                
+                if (rarityIndex >= 3) num = ['777', '001', '100', '888', '999'][Math.floor(Math.random()*5)];
+                if (rarityIndex >= 1) tags.push('Красивые цифры');
+                if (l1 === l2 && l2 === l3 && rarityIndex >= 2) tags.push('Одинаковые буквы');
+
+                name = `${num} ${l1}${l2}${l3}`;
+            } else if (type === 'phone') {
+                let num = '';
+                if (rarityIndex === 4) num = '777-77-77';
+                else if (rarityIndex >= 2) num = '123-45-67';
+                else num = Math.floor(1000000 + Math.random() * 9000000).toString().replace(/(\d{3})(\d{2})(\d{2})/, '$1-$2-$3');
+                name = `+7 999 ${num}`;
+                if (rarityIndex >= 2) tags.push('Зеркальный');
+            } else if (type === 'username') {
+                const words = ['king', 'boss', 'money', 'trade', 'rich', 'top', 'best', 'crypto'];
+                if (rarityIndex >= 3) name = '@' + words[Math.floor(Math.random()*words.length)];
+                else {
+                    const chars = 'abcdefghijklmnopqrstuvwxyz';
+                    name = '@' + chars[Math.floor(Math.random()*26)] + chars[Math.floor(Math.random()*26)];
+                    if (rarityIndex === 2) name += chars[Math.floor(Math.random()*26)];
+                }
+                tags.push('Короткий');
+            } else if (type === 'gift') {
+                const gifts = ['💎 Алмаз', '🚀 Ракета', '🐻 Медведь', '🎁 Подарок', '🍺 Кружка', '🌹 Роза', '💍 Кольцо'];
+                name = gifts[Math.floor(Math.random() * gifts.length)];
+                tags.push('Эксклюзив');
+            }
+
+            const baseValue = 5000 + Math.floor(Math.random() * 10000);
+            const value = Math.floor(baseValue * rarity.mult);
+
+            return {
+                id: Date.now() + Math.random().toString(36).substr(2, 5),
+                type,
+                name,
+                rarity: rarity.name,
+                rarityColor: rarity.color,
+                value,
+                tags,
+                baseValue
+            };
+        }
+
+        // --- ИНТЕРФЕЙС И НАВИГАЦИЯ ---
+        function updateTime() {
+            state.gameTime += 1; // 1 секунда = 1 игровая минута
+            if (state.gameTime >= 24 * 60) {
+                state.gameTime = 0;
+                dailyUpdate();
+            }
+            saveState();
+            
+            const h = Math.floor(state.gameTime / 60).toString().padStart(2, '0');
+            const m = (state.gameTime % 60).toString().padStart(2, '0');
+            const timeStr = `${h}:${m}`;
+            
+            document.querySelectorAll('[id^="game-time"]').forEach(el => el.innerText = timeStr);
+        }
+
+        function updateUI() {
+            // Баланс в разных местах
+            document.getElementById('bank-balance').innerText = state.money.toLocaleString('ru-RU') + ' ₽';
+            document.getElementById('numbers-balance').innerText = state.money.toLocaleString('ru-RU');
+            document.getElementById('storage-count').innerText = state.inventory.length;
+            
+            const totalVal = state.inventory.reduce((acc, item) => acc + item.value, 0);
+            document.getElementById('storage-total-value').innerText = totalVal.toLocaleString('ru-RU') + ' ₽';
+            document.getElementById('storage-profit').innerText = '+' + (totalVal > 0 ? Math.floor(totalVal * 0.15).toLocaleString('ru-RU') : 0) + ' ₽';
+
+            // Обновление хранилища (первый предмет)
+            if (state.inventory.length > 0) {
+                const item = state.inventory[0];
+                document.getElementById('storage-plate-text').innerText = item.name;
+                document.getElementById('storage-rarity').innerText = item.rarity;
+                document.getElementById('storage-rarity').style.background = item.rarityColor;
+                document.getElementById('storage-value').innerText = '≈ ' + item.value.toLocaleString('ru-RU') + ' ₽';
+                document.getElementById('storage-tags').innerText = item.tags.join(' · ');
+            }
+
+            // Обновление бейджа сообщений
+            const unread = state.messages.filter(m => m.unread).length;
+            const badge = document.getElementById('msg-badge');
+            if (unread > 0) {
+                badge.style.display = 'flex';
+                badge.innerText = unread;
+            } else {
+                badge.style.display = 'none';
+            }
+
+            // Обновление списка объявлений
+            renderAvitoList();
+            renderMessagesList();
+            renderMyAssets();
+            renderShowcase();
+        }
+
+        function openApp(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            
+            if (id === 'app-bank') {
+                document.getElementById('bank-login-screen').style.display = 'flex';
+                document.getElementById('app-bank-main').style.transform = 'translateX(100%)';
+                state.pinCode = '';
+                updatePinDots();
+            }
+            if (id === 'app-chat') {
+                renderChat();
+            }
+        }
+
+        function closeApp(id) {
+            document.getElementById(id).classList.remove('active');
+            if (id === 'app-chat' || id === 'app-storage' || id === 'app-numbers' || id === 'app-docs' || id === 'app-sleep' || id === 'app-bank' || id === 'app-bank-main' || id === 'app-messages') {
+                document.getElementById('screen-home').classList.add('active');
+            }
+            if (id === 'app-bank-main') {
+                document.getElementById('app-bank').classList.remove('active');
+                document.getElementById('screen-home').classList.add('active');
+            }
+        }
+
+        // --- ЛОТЕРЕЯ (ГИБДД) ---
+        function spinLottery() {
+            if (state.money < 12000) {
+                showNotification('Банк', 'Недостаточно средств на счете!');
+                return;
+            }
+            
+            state.money -= 12000;
+            updateUI();
+            
+            const spinBox = document.getElementById('spin-box');
+            const spinBtn = document.getElementById('spin-btn');
+            spinBtn.innerText = 'Крутим...';
+            spinBtn.disabled = true;
+            
+            let counter = 0;
+            const interval = setInterval(() => {
+                const tempAsset = generateAsset('plate');
+                spinBox.innerHTML = `<div style="background:#fff; color:#000; padding:10px 20px; border-radius:8px; font-size:30px; font-weight:bold; font-family:monospace; border:4px solid #000;">${tempAsset.name}</div>`;
+                counter++;
+                
+                if (counter > 15) {
+                    clearInterval(interval);
+                    const finalAsset = generateAsset('plate');
+                    
+                    spinBox.innerHTML = `<div style="background:#fff; color:#000; padding:10px 20px; border-radius:8px; font-size:30px; font-weight:bold; font-family:monospace; border:4px solid #000;">${finalAsset.name}</div>`;
+                    spinBtn.innerText = 'Крутить за 12 000 ₽';
+                    spinBtn.disabled = false;
+                    
+                    // Добавляем в инвентарь
+                    state.inventory.push(finalAsset);
+                    saveState();
+                    updateUI();
+                    
+                    showNotification('ГИБДД', `Вы получили номер: ${finalAsset.name} (${finalAsset.rarity})`);
+                    
+                    // Шанс на появление покупателя
+                    if (Math.random() > 0.5) {
+                        setTimeout(() => generateBuyer(finalAsset), 3000);
+                    }
+                }
+            }, 100);
+        }
+
+        // --- ОБЪЯВЛЕНИЯ (АВИТО) ---
+        function listItemForSale(item) {
+            if (state.listings.find(l => l.id === item.id)) return;
+            
+            state.listings.push({
+                ...item,
+                askPrice: item.value
+            });
+            
+            // Удаляем из инвентаря (он как бы в объявлении)
+            state.inventory = state.inventory.filter(i => i.id !== item.id);
+            
+            saveState();
+            updateUI();
+            showNotification('AvtoBuy', 'Объявление опубликовано!');
+            
+            // Симуляция звонка покупателя через время
+            setTimeout(() => generateBuyer(item), Math.random() * 10000 + 5000);
+        }
+
+        function renderAvitoList() {
+            const container = document.getElementById('avito-list');
+            container.innerHTML = '';
+            
+            if (state.listings.length === 0) {
+                container.innerHTML = `<div style="text-align:center; color:#999; margin-top:50px;">У вас нет активных объявлений.<br><br>Купите актив в приложении «Активы» и выставьте его здесь.</div>`;
+                return;
+            }
+
+            state.listings.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'card';
+                el.innerHTML = `
+                    <div class="card-img" style="background:#e0e0e0; font-size:24px; color:#333;">
+                        ${item.name}
+                        <div class="badge-urgent">СРОЧНО</div>
+                    </div>
+                    <div class="card-content">
+                        <div class="price">${item.askPrice.toLocaleString('ru-RU')} ₽</div>
+                        <div class="card-title">${item.type === 'plate' ? 'Госномер' : item.type === 'phone' ? 'Номер телефона' : 'Актив'} ${item.rarity}</div>
+                        <div class="tags">
+                            ${item.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                            <span class="tag">👁 ${Math.floor(Math.random()*300)}</span>
+                        </div>
+                    </div>
+                `;
+                // Клик по объявлению открывает чат (симуляция)
+                el.onclick = () => {
+                    if (state.messages.length > 0) {
+                        openApp('app-chat');
+                    } else {
+                        showNotification('AvtoBuy', 'Пока нет сообщений по этому объявлению');
+                    }
+                };
+                container.appendChild(el);
+            });
+        }
+
+        // --- ПОКУПАТЕЛИ И ЧАТ ---
+        const buyers = [
+            { name: 'Виктор', avatar: '👨‍🦳' },
+            { name: 'Роман', avatar: '👨‍🦰' },
+            { name: 'Ахмед', avatar: '🧔' },
+            { name: 'Елена', avatar: '👩' },
+            { name: 'Скаммер', avatar: '🕵️' }
+        ];
+
+        function generateBuyer(item) {
+            const buyer = buyers[Math.floor(Math.random() * buyers.length)];
+            const offer = Math.floor(item.askPrice * (0.7 + Math.random() * 0.2));
+            
+            const chatId = Date.now().toString();
+            const newMessage = {
+                id: chatId,
+                item: item,
+                buyer: buyer,
+                messages: [
+                    { sender: 'in', text: `Доброго дня! Давно присматриваюсь к вашему лоту. Возьму за ${offer.toLocaleString('ru-RU')} ₽ — и по рукам?`, time: getFormattedTime() }
+                ],
+                currentOffer: offer,
+                unread: true,
+                status: 'active' // active, rejected, accepted
+            };
+
+            state.messages.push(newMessage);
+            
+            // Push уведомление
+            showNotification(buyer.name, `У меня нет таких денег. Могу наскрести ${offer.toLocaleString('ru-RU')} ₽.`);
+            
+            saveState();
+            updateUI();
+        }
+
+        function renderMessagesList() {
+            const container = document.getElementById('messages-list');
+            if (!container) return;
+            
+            if (state.messages.length === 0) {
+                container.innerHTML = `<div style="color:#999; text-align:center; margin-top:50px;">Нет новых сообщений</div>`;
+                return;
+            }
+            
+            container.innerHTML = '';
+            state.messages.forEach(msg => {
+                const el = document.createElement('div');
+                el.style = 'display:flex; gap:12px; align-items:center; padding:12px 0; border-bottom:1px solid #eee;';
+                el.innerHTML = `
+                    <div style="width:48px; height:48px; border-radius:50%; background:#f2f2f7; display:flex; justify-content:center; align-items:center; font-size:24px;">${msg.buyer.avatar}</div>
+                    <div style="flex:1;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <div style="font-weight:600;">${msg.buyer.name}</div>
+                            <div style="font-size:12px; color:#999;">${msg.messages[msg.messages.length-1].time}</div>
+                        </div>
+                        <div style="font-size:14px; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">${msg.messages[msg.messages.length-1].text}</div>
+                    </div>
+                `;
+                el.onclick = () => {
+                    state.activeChatId = msg.id;
+                    msg.unread = false;
+                    saveState();
+                    updateUI();
+                    openApp('app-chat');
+                };
+                container.appendChild(el);
+            });
+        }
+
+        function renderChat() {
+            const chat = state.messages.find(m => m.id === state.activeChatId);
+            if (!chat) return;
+
+            document.getElementById('chat-buyer-name').innerText = chat.buyer.name;
+            document.getElementById('chat-item-name').innerText = chat.item.name;
+            document.getElementById('chat-item-price').innerText = chat.item.askPrice.toLocaleString('ru-RU') + ' ₽';
+
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = `<div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; font-size:12px; text-align:center; margin-bottom:10px;">Никогда не отправляйте предоплату, вы можете потерять свои деньги!</div>`;
+
+            chat.messages.forEach(m => {
+                const div = document.createElement('div');
+                div.className = `message ${m.sender}`;
+                div.innerHTML = `
+                    ${m.text}
+                    <div class="msg-time">${m.time} ${m.sender === 'out' ? '✓✓' : ''}</div>
+                `;
+                container.appendChild(div);
+            });
+            
+            // Прокрутка вниз
+            container.scrollTop = container.scrollHeight;
+
+            // Скрываем кнопки, если сделка завершена
+            const actions = document.getElementById('chat-actions');
+            if (chat.status !== 'active') {
+                actions.style.display = 'none';
+            } else {
+                actions.style.display = 'flex';
+            }
+        }
+
+        // --- ТОРГОВЛЯ ---
+        function showTradeSheet() {
+            const chat = state.messages.find(m => m.id === state.activeChatId);
+            if (!chat) return;
+            
+            document.getElementById('current-offer').innerText = chat.currentOffer.toLocaleString('ru-RU');
+            document.getElementById('my-price-input').value = chat.currentOffer + 50000;
+            document.getElementById('trade-sheet').classList.add('show');
+        }
+
+        function hideTradeSheet() {
+            document.getElementById('trade-sheet').classList.remove('show');
+        }
+
+        function adjustPrice(amount) {
+            const input = document.getElementById('my-price-input');
+            let val = parseInt(input.value) || 0;
+            val += amount;
+            if (val < 0) val = 0;
+            input.value = val;
+        }
+
+        function submitCounterOffer() {
+            const chat = state.messages.find(m => m.id === state.activeChatId);
+            if (!chat) return;
+
+            const myPrice = parseInt(document.getElementById('my-price-input').value);
+            if (!myPrice || myPrice <= 0) return;
+
+            hideTradeSheet();
+
+            chat.messages.push({
+                sender: 'out',
+                text: `Готов отдать за ${myPrice.toLocaleString('ru-RU')} ₽.`,
+                time: getFormattedTime()
+            });
+            chat.unread = false;
+            renderChat();
+            saveState();
+
+            // Ответ бота
+            setTimeout(() => {
+                let botResponse = '';
+                if (myPrice <= chat.currentOffer * 1.1) {
+                    botResponse = `По рукам! Согласен на ${myPrice.toLocaleString('ru-RU')} ₽.`;
+                    chat.currentOffer = myPrice;
+                    chat.status = 'deal';
+                } else if (myPrice < chat.item.askPrice) {
+                    const newOffer = Math.floor(myPrice * 0.9);
+                    botResponse = `У меня нет таких денег. Могу наскрести ${newOffer.toLocaleString('ru-RU')} ₽.`;
+                    chat.currentOffer = newOffer;
+                } else {
+                    botResponse = `Это слишком дорого. Больше торговаться не буду.`;
+                    chat.status = 'rejected';
+                }
+
+                chat.messages.push({
+                    sender: 'in',
+                    text: botResponse,
+                    time: getFormattedTime()
+                });
+                chat.unread = true;
+                saveState();
+                updateUI();
+                
+                if (state.activeChatId === chat.id) {
+                    renderChat();
+                }
+
+                if (chat.status === 'deal') {
+                    setTimeout(() => completeDeal(chat), 2000);
+                }
+            }, 3000);
+        }
+
+        function acceptOffer() {
+            const chat = state.messages.find(m => m.id === state.activeChatId);
+            if (!chat) return;
+
+            chat.messages.push({
+                sender: 'out',
+                text: `Согласен. Давайте оформлять.`,
+                time: getFormattedTime()
+            });
+            chat.status = 'deal';
+            renderChat();
+            saveState();
+            
+            setTimeout(() => completeDeal(chat), 2000);
+        }
+
+        function rejectOffer() {
+            const chat = state.messages.find(m => m.id === state.activeChatId);
+            if (!chat) return;
+
+            chat.messages.push({
+                sender: 'out',
+                text: `Нет, это слишком мало.`,
+                time: getFormattedTime()
+            });
+            chat.status = 'rejected';
+            renderChat();
+            saveState();
+        }
+
+        function completeDeal(chat) {
+            // Проверка на мошенника
+            if (chat.buyer.name === 'Скаммер') {
+                chat.messages.push({
+                    sender: 'in',
+                    text: `Отлично! Скиньте реквизиты, сейчас переведу... *исчез из чата*`,
+                    time: getFormattedTime()
+                });
+                showNotification('AvtoBuy', 'Сделка сорвалась. Покупатель оказался мошенником.');
+            } else {
+                // Успешная сделка
+                state.money += chat.currentOffer;
+                state.messages = state.messages.filter(m => m.id !== chat.id);
+                state.listings = state.listings.filter(l => l.id !== chat.item.id);
+                
+                chat.messages.push({
+                    sender: 'in',
+                    text: `Деньги переведены. Спасибо за сделку!`,
+                    time: getFormattedTime()
+                });
+                
+                showNotification('П-Банк', `Поступление: ${chat.currentOffer.toLocaleString('ru-RU')} ₽`);
+                state.activeChatId = null;
+            }
+            
+            saveState();
+            updateUI();
+            document.getElementById('chat-actions').style.display = 'none';
+            setTimeout(() => closeApp('app-chat'), 3000);
+        }
+
+        // --- БАНК ---
+        function enterPin(digit) {
+            if (digit === 'del') {
+                state.pinCode = state.pinCode.slice(0, -1);
+            } else if (state.pinCode.length < 4) {
+                state.pinCode += digit;
+            }
+            
+            updatePinDots();
+            
+            if (state.pinCode.length === 4) {
+                setTimeout(() => {
+                    if (state.pinCode === '1111' || state.pinCode === '0000') {
+                        document.getElementById('bank-login-screen').style.display = 'none';
+                        document.getElementById('app-bank-main').style.transform = 'translateX(0)';
+                    } else {
+                        showNotification('П-Банк', 'Неверный код! (Подсказка: 1111)');
+                        state.pinCode = '';
+                        updatePinDots();
+                    }
+                }, 300);
+            }
+        }
+
+        function updatePinDots() {
+            for (let i = 1; i <= 4; i++) {
+                const dot = document.getElementById(`dot-${i}`);
+                if (i <= state.pinCode.length) {
+                    dot.classList.add('filled');
+                } else {
+                    dot.classList.remove('filled');
+                }
+            }
+        }
+
+        // --- ВКЛАДКИ АКТИВОВ ---
+        function switchNumbersTab(tab) {
+            state.currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('tab-lottery').style.display = tab === 'lottery' ? 'flex' : 'none';
+            document.getElementById('tab-showcase').style.display = tab === 'showcase' ? 'block' : 'none';
+            document.getElementById('tab-my').style.display = tab === 'my' ? 'block' : 'none';
+        }
+
+        function renderShowcase() {
+            const container = document.getElementById('tab-showcase');
+            if (!container) return;
+            container.innerHTML = '<div style="color:#aaa; margin-bottom:10px; font-size:12px;">Обновляется раз в день. Купить актив можно сразу.</div>';
+            
+            // Генерируем 3 случайных актива для витрины
+            for (let i = 0; i < 3; i++) {
+                const asset = generateAsset(['plate', 'phone', 'username', 'gift'][Math.floor(Math.random()*4)]);
+                const el = document.createElement('div');
+                el.style = 'background:#2c2c2e; padding:16px; border-radius:12px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;';
+                el.innerHTML = `
+                    <div>
+                        <div style="font-size:18px; font-weight:bold; color:#fff;">${asset.name}</div>
+                        <div style="font-size:12px; color:${asset.rarityColor}; margin-top:4px;">${asset.rarity} · ${asset.tags.join(', ')}</div>
+                        <div style="font-size:14px; color:#aaa; margin-top:8px;">${asset.value.toLocaleString('ru-RU')} ₽</div>
+                    </div>
+                    <button class="btn" style="background:var(--num-yellow); color:#000; padding:8px 12px; font-size:12px;" onclick="buyShowcaseItem('${asset.id}')">Купить</button>
+                `;
+                container.appendChild(el);
+                
+                // Сохраняем ассеты витрины в память (в реальном приложении нужно хранить в состоянии)
+                if(!state.showcase) state.showcase = [];
+                if(!state.showcase.find(a => a.id === asset.id)) state.showcase.push(asset);
+            }
+        }
+
+        function buyShowcaseItem(id) {
+            const asset = state.showcase.find(a => a.id === id);
+            if (!asset) return;
+            
+            if (state.money >= asset.value) {
+                state.money -= asset.value;
+                state.inventory.push(asset);
+                state.showcase = state.showcase.filter(a => a.id !== id);
+                
+                // Обновляем UI
+                updateUI();
+                saveState();
+                showNotification('Активы', `Вы купили ${asset.name}`);
+                
+                // Перерисовываем витрину
+                document.getElementById('tab-showcase').innerHTML = '';
+                renderShowcase();
+            } else {
+                showNotification('Банк', 'Недостаточно средств!');
+            }
+        }
+
+        function renderMyAssets() {
+            const container = document.getElementById('tab-my');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            if (state.inventory.length === 0) {
+                container.innerHTML = '<div style="color:#aaa; text-align:center; margin-top:20px;">У вас нет активов</div>';
+                return;
+            }
+
+            state.inventory.forEach(asset => {
+                const el = document.createElement('div');
+                el.style = 'background:#2c2c2e; padding:16px; border-radius:12px; margin-bottom:12px;';
+                el.innerHTML = `
+                    <div style="display:flex; justify-content:space-between;">
+                        <div style="font-size:18px; font-weight:bold; color:#fff;">${asset.name}</div>
+                        <div style="font-size:12px; color:${asset.rarityColor}; border:1px solid ${asset.rarityColor}; padding:2px 6px; border-radius:4px;">${asset.rarity}</div>
+                    </div>
+                    <div style="font-size:14px; color:#aaa; margin-top:8px;">Оценка: ${asset.value.toLocaleString('ru-RU')} ₽</div>
+                    <div style="display:flex; gap:8px; margin-top:12px;">
+                        <button class="btn" style="background:#007aff; color:#fff; font-size:12px; padding:8px;" onclick="listItemForSaleById('${asset.id}')">Продать</button>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        function listItemForSaleById(id) {
+            const item = state.inventory.find(i => i.id === id);
+            if (item) {
+                listItemForSale(item);
+                renderMyAssets();
+                document.getElementById('tab-my').style.display = 'none';
+            }
+        }
+
+        // --- ВСПОМОГАТЕЛЬНЫЕ ---
+        function getFormattedTime() {
+            const h = Math.floor(state.gameTime / 60).toString().padStart(2, '0');
+            const m = (state.gameTime % 60).toString().padStart(2, '0');
+            return `${h}:${m}`;
+        }
+
+        function showNotification(title, body) {
+            const container = document.getElementById('notification-container');
+            const el = document.createElement('div');
+            el.className = 'push-notification';
+            el.innerHTML = `
+                <div class="push-header">
+                    <span>🟢 AvtoBuy</span>
+                    <span style="margin-left:auto;">сейчас</span>
+                </div>
+                <div class="push-title">${title}</div>
+                <div class="push-body">${body}</div>
+            `;
+            container.appendChild(el);
+            
+            // Анимация появления
+            setTimeout(() => el.classList.add('show'), 100);
+            
+            // Удаление
+            setTimeout(() => {
+                el.classList.remove('show');
+                setTimeout(() => el.remove(), 400);
+            }, 4000);
+        }
+
+        function skipTime(hours) {
+            state.gameTime += hours * 60;
+            if (state.gameTime >= 24 * 60) {
+                state.gameTime = state.gameTime % (24 * 60);
+                dailyUpdate();
+            }
+            updateTime();
+            updateUI();
+            closeApp('app-sleep');
+            showNotification('Система', `Вы проспали ${hours} часов.`);
+        }
+
+        function dailyUpdate() {
+            // Обновление витрины раз в день
+            state.showcase = [];
+            renderShowcase();
+            showNotification('Активы', 'Витрина обновлена! Новые предложения.');
+        }
+
+        // Инициализация игры
+        window.onload = () => {
+            loadState();
+            setInterval(updateTime, 1000);
+            
+            // Стартовое сообщение для вовлечения
+            if (state.messages.length === 0 && state.inventory.length === 0 && state.listings.length === 0) {
+                setTimeout(() => {
+                    const starterAsset = generateAsset('plate');
+                    starterAsset.name = '0212 АО';
+                    starterAsset.rarity = 'Красивый';
+                    starterAsset.rarityColor = '#34c759';
+                    starterAsset.tags = ['Зеркальные цифры', 'Зеркальные буквы'];
+                    starterAsset.value = 16800;
+                    
+                    state.inventory.push(starterAsset);
+                    saveState();
+                    updateUI();
+                    
+                    showNotification('ГИБДД', 'Добро пожаловать! Вам выдан стартовый актив.');
+                }, 2000);
+            }
+        };
+    </script>
+</body>
+</html>
